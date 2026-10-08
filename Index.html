@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>License Plate Game</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E6ECF1;
+    --card: #FBFCFD;
+    --ink: #1B2430;
+    --muted: #5B6775;
+    --blue: #1D3F8A;
+    --green: #0B6B3A;
+    --green-ink: #FFFFFF;
+    --yellow: #F2C230;
+    --line: #C3CED8;
+    --danger: #B3261E;
+    --display: "Oswald", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #131A22;
+      --card: #1E2832;
+      --ink: #EEF2F6;
+      --muted: #9AA7B5;
+      --blue: #8FB0FF;
+      --green: #1F8F54;
+      --line: #34424F;
+      --danger: #FF8A80;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 150px; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.45;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Header */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--paper);
+    border-bottom: 2px solid var(--line);
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  }
+  .bar { max-width: 1000px; margin: 0 auto; }
+  .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 {
+    font-family: var(--display); font-weight: 700; font-size: 1.7rem;
+    margin: 0; letter-spacing: .01em; line-height: 1.1;
+  }
+  .count { font-family: var(--display); font-weight: 500; font-size: 1.2rem; white-space: nowrap; }
+  .count b { font-weight: 700; color: var(--green); font-size: 1.5rem; }
+  .meter {
+    height: 12px; border-radius: 6px; margin: 10px 0 10px;
+    background: var(--card); border: 1px solid var(--line); overflow: hidden;
+  }
+  .meter > div {
+    height: 100%; width: 0; background: var(--yellow);
+    transition: width .3s ease;
+  }
+  .meter > div.done { background: var(--green); }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .tabs { display: flex; gap: 6px; }
+  .tab, .btn {
+    font: 600 .95rem var(--body);
+    min-height: 44px; padding: 0 14px;
+    border-radius: 10px; border: 2px solid var(--line);
+    background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .tab[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .tab[aria-pressed="true"] { color: #0E1620; }
+  }
+  .btn.reset { border-color: var(--danger); color: var(--danger); }
+  :focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+
+  main { max-width: 1000px; margin: 0 auto; padding: 16px 16px 48px; }
+  h2 { font-family: var(--display); font-weight: 700; font-size: 1.35rem; margin: 28px 0 4px; }
+  .hint { color: var(--muted); margin: 0 0 14px; font-size: .95rem; }
+
+  /* Plates */
+  .grid {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    padding: 0; margin: 0; list-style: none;
+  }
+  .plate {
+    position: relative; width: 100%; min-height: 104px;
+    border: 3px solid var(--blue); border-radius: 12px;
+    background: var(--card); color: var(--ink);
+    padding: 14px 10px 12px; text-align: center; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    font: inherit;
+    box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px var(--line);
+    transition: background .15s, color .15s, border-color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .plate::before, .plate::after {
+    content: ""; position: absolute; top: 9px; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--line);
+  }
+  .plate::before { left: 10px; }
+  .plate::after { right: 10px; }
+  .plate .name {
+    font-family: var(--display); font-weight: 700; font-size: 1.3rem;
+    line-height: 1.05; text-transform: uppercase; letter-spacing: .02em;
+  }
+  .plate .nick { font-size: .8rem; color: var(--muted); line-height: 1.2; }
+  .plate[aria-pressed="true"] {
+    background: var(--green); border-color: var(--green); color: var(--green-ink);
+    box-shadow: inset 0 0 0 3px var(--green), inset 0 0 0 4px rgba(255,255,255,.55);
+  }
+  .plate[aria-pressed="true"] .nick { color: rgba(255,255,255,.85); }
+  .plate[aria-pressed="true"]::before, .plate[aria-pressed="true"]::after { background: rgba(255,255,255,.6); }
+  .check {
+    position: absolute; right: 8px; bottom: 6px; font-size: 1.1rem; font-weight: 700;
+    color: var(--yellow); display: none;
+  }
+  .plate[aria-pressed="true"] .check { display: block; }
+
+  .empty { color: var(--muted); padding: 24px 0; text-align: center; grid-column: 1 / -1; }
+
+  /* Other plates */
+  .add { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .add input {
+    flex: 1 1 200px; min-height: 48px; padding: 0 14px;
+    font: 500 1rem var(--body); color: var(--ink);
+    background: var(--card); border: 2px solid var(--line); border-radius: 10px;
+  }
+  .add .btn { background: var(--blue); border-color: var(--blue); color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .add .btn { color: #0E1620; }
+  }
+  .other-item { position: relative; }
+  .other-item .remove {
+    position: absolute; top: -8px; right: -8px; z-index: 2;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--line); background: var(--card); color: var(--ink);
+    font: 700 1rem var(--body); cursor: pointer; line-height: 1;
+  }
+
+  footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 0 16px 32px; }
+
+  /* Dialog */
+  dialog {
+    border: 0; border-radius: 16px; padding: 22px; max-width: 360px; width: calc(100% - 32px);
+    background: var(--card); color: var(--ink);
+  }
+  dialog::backdrop { background: rgba(10, 16, 24, .6); }
+  dialog h3 { font-family: var(--display); font-size: 1.4rem; margin: 0 0 6px; }
+  dialog p { margin: 0 0 18px; color: var(--muted); }
+  dialog .row { display: flex; gap: 8px; justify-content: flex-end; }
+  dialog .btn.go { background: var(--danger); border-color: var(--danger); color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) dialog .btn.go { color: #1a0a09; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="top">
+      <h1>License Plate Game</h1>
+      <div class="count" aria-live="polite"><b id="found">0</b> of 50</div>
+    </div>
+    <div class="meter" role="progressbar" aria-label="States found" aria-valuemin="0" aria-valuemax="50" aria-valuenow="0" id="meter"><div id="fill"></div></div>
+    <div class="tools">
+      <div class="tabs" role="group" aria-label="Filter">
+        <button class="tab" data-filter="all" aria-pressed="true">All</button>
+        <button class="tab" data-filter="need" aria-pressed="false">Still needed</button>
+        <button class="tab" data-filter="found" aria-pressed="false">Found</button>
+      </div>
+      <button class="btn reset" id="clearBtn">Start new trip</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <h2>States</h2>
+  <p class="hint">Tap a plate when you spot it.</p>
+  <ul class="grid" id="states"></ul>
+
+  <h2>Other plates</h2>
+  <p class="hint">Canada, Mexico, D.C., Puerto Rico, military, anything else. Type it in to add it.</p>
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="otherInput" type="text" maxlength="40" placeholder="e.g. Ontario, D.C., Mexico" aria-label="Other plate name">
+    <button class="btn" type="submit">Add plate</button>
+  </form>
+  <ul class="grid" id="others"></ul>
+</main>
+
+<footer>Your list is saved on this device only.</footer>
+
+<dialog id="dlg">
+  <h3>Start a new trip?</h3>
+  <p>This clears every checked state and removes all other plates.</p>
+  <div class="row">
+    <button class="btn" id="cancel">Keep my list</button>
+    <button class="btn go" id="confirm">Clear it</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var STATES = [
+    ["Alabama","Heart of Dixie"],["Alaska","The Last Frontier"],["Arizona","Grand Canyon State"],
+    ["Arkansas","The Natural State"],["California","Golden State"],["Colorado","Centennial State"],
+    ["Connecticut","Constitution State"],["Delaware","The First State"],["Florida","Sunshine State"],
+    ["Georgia","Peach State"],["Hawaii","Aloha State"],["Idaho","Gem State"],
+    ["Illinois","Land of Lincoln"],["Indiana","Hoosier State"],["Iowa","Hawkeye State"],
+    ["Kansas","Sunflower State"],["Kentucky","Bluegrass State"],["Louisiana","Pelican State"],
+    ["Maine","Pine Tree State"],["Maryland","Old Line State"],["Massachusetts","Bay State"],
+    ["Michigan","Great Lakes State"],["Minnesota","North Star State"],["Mississippi","Magnolia State"],
+    ["Missouri","Show-Me State"],["Montana","Treasure State"],["Nebraska","Cornhusker State"],
+    ["Nevada","Silver State"],["New Hampshire","Granite State"],["New Jersey","Garden State"],
+    ["New Mexico","Land of Enchantment"],["New York","Empire State"],["North Carolina","Tar Heel State"],
+    ["North Dakota","Peace Garden State"],["Ohio","Buckeye State"],["Oklahoma","Sooner State"],
+    ["Oregon","Beaver State"],["Pennsylvania","Keystone State"],["Rhode Island","Ocean State"],
+    ["South Carolina","Palmetto State"],["South Dakota","Mount Rushmore State"],["Tennessee","Volunteer State"],
+    ["Texas","Lone Star State"],["Utah","Beehive State"],["Vermont","Green Mountain State"],
+    ["Virginia","Old Dominion"],["Washington","Evergreen State"],["West Virginia","Mountain State"],
+    ["Wisconsin","Badger State"],["Wyoming","Equality State"]
+  ];
+  var KEY = "plate-game-v1";
+  var state = { found: {}, others: [] };
+  var filter = "all";
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && s.found && Array.isArray(s.others)) state = s;
+      }
+    } catch (e) {}
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  var statesEl = document.getElementById("states");
+  var othersEl = document.getElementById("others");
+
+  function plateButton(name, nick, on) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "plate";
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    var n = document.createElement("span"); n.className = "name"; n.textContent = name;
+    b.appendChild(n);
+    if (nick) { var k = document.createElement("span"); k.className = "nick"; k.textContent = nick; b.appendChild(k); }
+    var c = document.createElement("span"); c.className = "check"; c.setAttribute("aria-hidden", "true"); c.textContent = "✓";
+    b.appendChild(c);
+    return b;
+  }
+
+  function renderStates() {
+    statesEl.innerHTML = "";
+    var shown = 0;
+    STATES.forEach(function (s) {
+      var on = !!state.found[s[0]];
+      if (filter === "need" && on) return;
+      if (filter === "found" && !on) return;
+      var li = document.createElement("li");
+      var b = plateButton(s[0], s[1], on);
+      b.addEventListener("click", function () {
+        if (state.found[s[0]]) delete state.found[s[0]]; else state.found[s[0]] = true;
+        save(); render();
+      });
+      li.appendChild(b);
+      statesEl.appendChild(li);
+      shown++;
+    });
+    if (!shown) {
+      var li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = filter === "found" ? "No states checked off yet." : "You found all 50. Nice trip!";
+      statesEl.appendChild(li);
+    }
+  }
+
+  function renderOthers() {
+    othersEl.innerHTML = "";
+    state.others.forEach(function (o, i) {
+      var li = document.createElement("li");
+      li.className = "other-item";
+      var b = plateButton(o.name, "Other plate", o.on);
+      b.addEventListener("click", function () { o.on = !o.on; save(); render(); });
+      var x = document.createElement("button");
+      x.type = "button"; x.className = "remove"; x.textContent = "×";
+      x.setAttribute("aria-label", "Remove " + o.name);
+      x.addEventListener("click", function () { state.others.splice(i, 1); save(); render(); });
+      li.appendChild(b); li.appendChild(x);
+      othersEl.appendChild(li);
+    });
+  }
+
+  function renderCount() {
+    var n = Object.keys(state.found).length;
+    document.getElementById("found").textContent = n;
+    var fill = document.getElementById("fill");
+    fill.style.width = (n / 50 * 100) + "%";
+    fill.className = n === 50 ? "done" : "";
+    document.getElementById("meter").setAttribute("aria-valuenow", n);
+  }
+
+  function render() { renderCount(); renderStates(); renderOthers(); }
+
+  // Filters
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.addEventListener("click", function () {
+      filter = t.dataset.filter;
+      document.querySelectorAll(".tab").forEach(function (x) {
+        x.setAttribute("aria-pressed", x === t ? "true" : "false");
+      });
+      renderStates();
+    });
+  });
+
+  // Add other plate
+  document.getElementById("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var inp = document.getElementById("otherInput");
+    var name = inp.value.trim();
+    if (!name) return;
+    state.others.push({ name: name, on: true });
+    inp.value = "";
+    save(); render();
+  });
+
+  // Clear
+  var dlg = document.getElementById("dlg");
+  document.getElementById("clearBtn").addEventListener("click", function () {
+    if (dlg.showModal) dlg.showModal();
+    else if (confirm("Clear everything and start a new trip?")) doClear();
+  });
+  document.getElementById("cancel").addEventListener("click", function () { dlg.close(); });
+  document.getElementById("confirm").addEventListener("click", function () { dlg.close(); doClear(); });
+  function doClear() {
+    state = { found: {}, others: [] };
+    save(); render();
+    window.scrollTo({ top: 0 });
+  }
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>
